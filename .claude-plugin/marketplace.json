@@ -10,7 +10,7 @@
       "name": "sigen-mcp-skills",
       "source": "./",
       "description": "Sigenergy ESS companion skills — dashboard (sigen-status), diagnostics (sigen-diagnose), configuration (sigen-config), docs (sigen-docs), config optimizer (sigen-config-optimizer ⚠️), and VPP offboarding (sigen-vpp-offboard). Ships with MCP server templates for all three @paulczar/sigen-*-mcp packages.",
-      "skills": ["skills/"]
+      "skills": ["./skills/"]
     }
   ]
 }

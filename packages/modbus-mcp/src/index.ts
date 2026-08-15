@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import "dotenv/config";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -50,8 +51,11 @@ function parseArgs() {
     if (args[i] === "--host" && i + 1 < args.length) host = args[++i];
     else if (args[i] === "--port" && i + 1 < args.length) port = parseInt(args[++i], 10);
   }
+  if (!host) host = process.env.MODBUS_HOST ?? "";
+  if (port === 502 && process.env.MODBUS_PORT) port = parseInt(process.env.MODBUS_PORT, 10);
   if (!host) {
     console.error("Usage: sigen-modbus-mcp --host <ip> [--port <port>]");
+    console.error("       Or set MODBUS_HOST, MODBUS_PORT in .env");
     process.exit(1);
   }
   return { host, port };
@@ -80,8 +84,27 @@ const { host, port } = parseArgs();
 const client = new ModbusRTU();
 let connected = false;
 
+// Bound every socket operation (initial connect included) so a dead or
+// half-open connection fails fast instead of hanging indefinitely — without
+// this, a stuck connect() can hang for the life of the process.
+client.setTimeout(5000);
+
+// The underlying socket can die between tool calls (inverter reboot, idle
+// drop, etc). Track that here instead of only inferring it from the next
+// read/write failure, so the very next call knows to reconnect.
+client.on("close", () => { connected = false; });
+client.on("error", () => { connected = false; });
+
 async function ensureConnected() {
   if (connected) return;
+  // If a previous connection is still considered open by the client, it
+  // hasn't been cleanly torn down (no FIN ever sent) — reconnecting on top
+  // of it without closing first leaves an orphaned session on the inverter's
+  // side, which only accepts a limited number (often just one) of concurrent
+  // Modbus TCP clients. Always close before opening a fresh connection.
+  if (client.isOpen) {
+    await new Promise<void>((resolve) => client.close(() => resolve()));
+  }
   try {
     await client.connectTCP(host, { port });
     connected = true;
@@ -286,10 +309,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const pa = toProtoAddr(address);
         let data: number[];
         try {
-          if (regType(address) === "holding") throw new Error("skip");
-          data = (await client.readInputRegisters(pa, count)).data;
-        } catch {
-          data = (await client.readHoldingRegisters(pa, count)).data;
+          try {
+            if (regType(address) === "holding") throw new Error("skip");
+            data = (await client.readInputRegisters(pa, count)).data;
+          } catch {
+            data = (await client.readHoldingRegisters(pa, count)).data;
+          }
+        } catch (err) {
+          const msg = errMsg(err);
+          if (!msg.startsWith("Modbus exception")) connected = false;
+          throw new McpError(ErrorCode.InternalError, `Modbus read error at ${address}: ${msg}`);
         }
         return { content: [{ type: "text", text: `Register ${address} (${count}): [${data.join(", ")}]` }] };
       }

@@ -17,6 +17,14 @@ npx -y @paulczar/sigen-modbus-mcp --host 192.168.x.x
 npx -y @paulczar/sigen-modbus-mcp --host 192.168.x.x --port 502
 ```
 
+Alternatively, set `MODBUS_HOST` (and optionally `MODBUS_PORT`) in a `.env` file instead of passing `--host`/`--port` — useful for keeping the host out of MCP client config files that might get committed:
+
+```bash
+# .env
+MODBUS_HOST=192.168.x.x
+MODBUS_PORT=502
+```
+
 ### MCP client config
 
 ```json
