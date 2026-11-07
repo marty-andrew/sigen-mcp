@@ -22,7 +22,7 @@ Call `read_plant` — this returns:
 - Grid connection status (OnGrid / OffGrid)
 - Running state (Running / Standby / Fault)
 - PV generation (kW)
-- ESS power (kW) — positive = charging, negative = discharging (per tool output label)
+- ESS power (kW) — positive = charging, negative = discharging
 - Grid power (kW) — positive = buying from grid, negative = selling to grid
 - Load consumption (kW)
 - Battery SOC (%) and SOH (%)
@@ -57,7 +57,7 @@ If alarms are present, list them all.
 
 ### 5. System Capacity
 
-Battery kWh and PV kW ratings aren't in the Modbus reads. Use values from memory if known; otherwise call `cloud_station_info` (battery capacity, PV capacity) and save them to memory. Never assume a capacity — use it for time-to-full/empty and PV-vs-rated estimates.
+Battery kWh and PV kW ratings aren't in the Modbus reads. If they're already known (e.g. saved from an earlier run), use them. Otherwise, if the cloud server (`sigen-api-mcp`) is configured, call `cloud_station_info` (battery capacity, PV capacity); if it isn't, ask the user. Save the values to memory where available so later runs don't need to look them up again. Never assume a capacity — use it for time-to-full/empty and PV-vs-rated estimates.
 
 ### 6. Synthesize
 
