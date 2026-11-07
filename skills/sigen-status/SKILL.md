@@ -23,10 +23,9 @@ Call `read_plant` — this returns:
 - Running state (Running / Standby / Fault)
 - PV generation (kW)
 - ESS power (kW) — positive = charging, negative = discharging (per tool output label)
-- Plant active power (kW) — negative = exporting to grid
+- Grid power (kW) — positive = buying from grid, negative = selling to grid
 - Load consumption (kW)
 - Battery SOC (%) and SOH (%)
-- Battery temperature (°C)
 
 ### 2. Read Inverter Detail
 
